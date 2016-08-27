@@ -1,15 +1,8 @@
----
-title: "Reproducible Research Project 1"
-author: "Chris Walsh"
-date: "August 27, 2016"
-output: 
-        html_document:
-                keep_md: true
----
+# Reproducible Research Project 1
+Chris Walsh  
+August 27, 2016  
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 Activity Monitoring Analysis
 ============================
@@ -21,7 +14,8 @@ questions provided in the assignment.
 
 ###Load and pre-process the data
 
-```{r loaddata, message=FALSE, warning=FALSE}
+
+```r
 unzip(zipfile = "activity.zip")
 actdata <- read.csv("activity.csv")
 require(lubridate)
@@ -32,7 +26,8 @@ actdata$date <- ymd(as.character(actdata$date))
 
 ###What is mean total number of steps taken per day?
 
-```{r meansteps, message=FALSE, warning=FALSE}
+
+```r
 require(dplyr)
 require(ggplot2)
 actdatacc <- filter(actdata, complete.cases(actdata))
@@ -41,32 +36,56 @@ ggplot(dailysum, aes(x=sum)) + geom_histogram(binwidth = 1000) +
         xlab("Sum of Daily Steps")
 ```
 
+![](PA1_template_files/figure-html/meansteps-1.png)<!-- -->
+
 
 The mean number of steps in a day can be found as:
-```{r mean}
+
+```r
 mean(dailysum$sum)
+```
+
+```
+## [1] 10766.19
 ```
 
 
 The median number of steps in a day can be found as:
-```{r median}
+
+```r
 median(dailysum$sum)
+```
+
+```
+## [1] 10765
 ```
 
 
 
 ###What is the average daily activity pattern?
 
-```{r timeseriessteps}
+
+```r
 dailypattern <- actdatacc %>% group_by(interval) %>% summarize("avg" = mean(steps))
 ggplot(dailypattern, aes(x=interval, y=avg)) + geom_line() + 
         xlab("5 Minute Interval") + ylab("average steps taken")
 ```
 
+![](PA1_template_files/figure-html/timeseriessteps-1.png)<!-- -->
+
 On average across the sample, the following interval contains the highest number of steps:
 
-```{r maxsteps}
+
+```r
 filter(dailypattern, avg == max(avg))
+```
+
+```
+## Source: local data frame [1 x 2]
+## 
+##   interval      avg
+##      (int)    (dbl)
+## 1      835 206.1698
 ```
 
 
@@ -75,13 +94,21 @@ filter(dailypattern, avg == max(avg))
 
 A number of intervals are currently missing step values (displayed as NA).
 
-```{r NAtable}
+
+```r
 table(is.na(actdata$steps))
+```
+
+```
+## 
+## FALSE  TRUE 
+## 15264  2304
 ```
 
 These data elements can be imputed by replacing NAs with the sample average for the given interval.
 
-```{r impute}
+
+```r
 imp <- function (steps, interval) {
         if (!is.na(steps))
                 imputed <- steps
@@ -97,37 +124,60 @@ impdata$steps <- unlist(mapply(imp, impdata$steps, impdata$interval))
 With these missing elements imputed, we can revisit the histogram of daily steps as well as the mean and median steps per day.
 
 The mean number of steps in a day when including these imputed values can be found as:
-```{r impmean}
+
+```r
 impdailysum <- impdata %>% group_by(date) %>% summarize("sum" = sum(steps))
 mean(impdailysum$sum)
 ```
 
+```
+## [1] 10766.19
+```
+
 
 The median number of steps in a day when including these imputed values can be found as:
-```{r impmedian}
+
+```r
 median(impdailysum$sum)
+```
+
+```
+## [1] 10766.19
 ```
 
 These mean and median values do not differ significantly from the previously calucated values. This is to be expected. Our original sample was missing step data for a number of entire days.
 
 Number of days in original sample:
 
-```{r daysinsample}
+
+```r
 length(unique(actdata$date))
+```
+
+```
+## [1] 61
 ```
 
 Number of days containing step data in original sample:
 
-```{r completedaysinsample}
+
+```r
 length(unique(actdatacc$date))
 ```
 
-When data is imputed for these additional `r length(unique(actdata$date))-length(unique(actdatacc$date))` days based on the average interval profile, we would not expect that average to substantially change. This change is visible in the histogram, where we can see an increase in the count of days that reflect this overall average.
+```
+## [1] 53
+```
 
-```{r impmeansteps}
+When data is imputed for these additional 8 days based on the average interval profile, we would not expect that average to substantially change. This change is visible in the histogram, where we can see an increase in the count of days that reflect this overall average.
+
+
+```r
 ggplot(impdailysum, aes(x=sum)) + geom_histogram(binwidth = 1000) + 
         xlab("Sum of Daily Steps")
 ```
+
+![](PA1_template_files/figure-html/impmeansteps-1.png)<!-- -->
 
 
 
@@ -135,7 +185,8 @@ ggplot(impdailysum, aes(x=sum)) + geom_histogram(binwidth = 1000) +
 
 In order to address differences in activity patterns we must first identify the data by the day of the week:
 
-```{r weekends}
+
+```r
 wknd <- function (date) {
         if (wday(date) %in% c(2:6))
                 day <- "Weekday"
@@ -149,10 +200,13 @@ impdata$day <- sapply(impdata$date, wknd)
 
 Once this has been identified in the data, we can use it to segment the previous panel plot:
 
-```{r timeseriessteps2}
+
+```r
 dailypattern <- impdata %>% group_by(interval, day) %>% summarize("avg" = mean(steps))
 ggplot(dailypattern, aes(x=interval, y=avg)) + geom_line() + 
         xlab("5 Minute Interval") + ylab("average steps taken") + facet_wrap(~day)
 ```
+
+![](PA1_template_files/figure-html/timeseriessteps2-1.png)<!-- -->
 
 The plot above indicates that weekdays do tend to see higher peak step values than weekend on average.
